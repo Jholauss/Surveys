@@ -7,11 +7,12 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
 export async function authenticateAdmin(email: string, password: string): Promise<boolean> {
   if (ADMIN_EMAILS.includes(email) && password === ADMIN_PASSWORD) {
-    cookies().set('admin_session', 'authenticated', {
+    const cookieStore = await cookies();
+    cookieStore.set('admin_session', 'authenticated', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       maxAge: 60 * 60 * 24, // 24 hours
-      path: '/admin'
+      path: '/' // Cambiar a '/' para que esté disponible en toda la app incluido /api/admin
     });
     return true;
   }
@@ -19,10 +20,12 @@ export async function authenticateAdmin(email: string, password: string): Promis
 }
 
 export async function isAdminAuthenticated(): Promise<boolean> {
-  const session = cookies().get('admin_session');
+  const cookieStore = await cookies();
+  const session = cookieStore.get('admin_session');
   return session?.value === 'authenticated';
 }
 
 export async function logoutAdmin() {
-  cookies().delete('admin_session');
+  const cookieStore = await cookies();
+  cookieStore.delete('admin_session');
 }

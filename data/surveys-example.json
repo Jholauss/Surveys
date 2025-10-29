@@ -1,0 +1,93 @@
+[
+  {
+    "title": "Evaluación Docente - Semestre 1 2025",
+    "description": "Encuesta de evaluación del desempeño docente para el primer semestre de 2025",
+    "type": "teacher_evaluation",
+    "status": "active",
+    "requiresCode": true,
+    "allowAnonymous": false,
+    "teacherNames": ["Dr. Juan Pérez", "Dra. María González", "Ing. Carlos Rodríguez"],
+    "questions": [
+      {
+        "type": "rating",
+        "question": "¿Cómo califica el dominio del tema por parte del docente?",
+        "description": "Siendo 1 muy malo y 5 excelente",
+        "required": true,
+        "minValue": 1,
+        "maxValue": 5
+      },
+      {
+        "type": "rating",
+        "question": "¿Cómo califica la claridad en la explicación?",
+        "required": true,
+        "minValue": 1,
+        "maxValue": 5
+      },
+      {
+        "type": "rating",
+        "question": "¿El docente es puntual y cumple con los horarios establecidos?",
+        "required": true,
+        "minValue": 1,
+        "maxValue": 5
+      },
+      {
+        "type": "textarea",
+        "question": "¿Qué aspectos positivos destacarías del docente?",
+        "required": false
+      },
+      {
+        "type": "textarea",
+        "question": "¿Qué aspectos crees que el docente debería mejorar?",
+        "required": false
+      }
+    ]
+  },
+  {
+    "title": "Encuesta de Satisfacción Institucional",
+    "description": "Encuesta sobre la satisfacción con los servicios institucionales",
+    "type": "institutional",
+    "status": "active",
+    "requiresCode": true,
+    "allowAnonymous": false,
+    "questions": [
+      {
+        "type": "rating",
+        "question": "¿Cómo califica la calidad de las instalaciones?",
+        "required": true,
+        "minValue": 1,
+        "maxValue": 5
+      },
+      {
+        "type": "rating",
+        "question": "¿Cómo califica la atención en secretaría académica?",
+        "required": true,
+        "minValue": 1,
+        "maxValue": 5
+      },
+      {
+        "type": "multiple_choice",
+        "question": "¿Qué servicio utilizas con más frecuencia?",
+        "options": ["Biblioteca", "Laboratorios", "Cafetería", "Deportes", "Ninguno"],
+        "required": true
+      },
+      {
+        "type": "checkbox",
+        "question": "¿Qué aspectos te gustaría que mejorara la institución? (puedes seleccionar varias opciones)",
+        "options": [
+          "Infraestructura",
+          "Tecnología",
+          "Atención al estudiante",
+          "Horarios",
+          "Comunicación",
+          "Otro"
+        ],
+        "required": false
+      },
+      {
+        "type": "textarea",
+        "question": "Comentarios adicionales",
+        "required": false
+      }
+    ]
+  }
+]

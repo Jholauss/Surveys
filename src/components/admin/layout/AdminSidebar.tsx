@@ -17,19 +17,19 @@ export default function AdminSidebar() {
     try {
       // Eliminar la cookie
       document.cookie = 'admin_session=; path=/; max-age=0';
-      
+
       await fetch('/api/admin/logout', {
         method: 'POST',
         credentials: 'same-origin'
       });
-      
-      router.push('/admin/login');
+
+      router.push('/');
       router.refresh();
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
       // Eliminar cookie aunque falle el API
       document.cookie = 'admin_session=; path=/; max-age=0';
-      router.push('/admin/login');
+      router.push('/');
     }
   };
 
@@ -72,12 +72,12 @@ export default function AdminSidebar() {
 
       {/* Navegación */}
       <nav className="p-4 space-y-2">
-        
-        <Link 
-          href="/admin/surveys" 
+
+        <Link
+          href="/admin/surveys"
           className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-            pathname.startsWith('/admin/surveys') 
-              ? 'bg-[#0f3460] text-white' 
+            pathname.startsWith('/admin/surveys')
+              ? 'bg-[#0f3460] text-white'
               : 'hover:bg-[#0f3460] hover:text-white'
           }`}
         >
@@ -85,11 +85,11 @@ export default function AdminSidebar() {
           {isSidebarOpen && 'Encuestas'}
         </Link>
 
-        <Link 
-          href="/admin/teachers" 
+        <Link
+          href="/admin/teachers"
           className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-            pathname.startsWith('/admin/teachers') 
-              ? 'bg-[#0f3460] text-white' 
+            pathname.startsWith('/admin/teachers')
+              ? 'bg-[#0f3460] text-white'
               : 'hover:bg-[#0f3460] hover:text-white'
           }`}
         >
@@ -97,13 +97,23 @@ export default function AdminSidebar() {
           {isSidebarOpen && 'Docentes'}
         </Link>
 
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors hover:bg-red-900 hover:text-white w-full text-left"
-        >
-          <LogOut className="w-5 h-5" />
-          {isSidebarOpen && 'Cerrar Sesión'}
-        </button>
+        <div className="pt-4 border-t border-[#16213e]">
+          <Link
+            href="/"
+            className="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors hover:bg-[#0f3460] hover:text-white"
+          >
+            <Home className="w-5 h-5" />
+            {isSidebarOpen && 'Inicio'}
+          </Link>
+
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors hover:bg-red-900 hover:text-white w-full text-left mt-2"
+          >
+            <LogOut className="w-5 h-5" />
+            {isSidebarOpen && 'Cerrar Sesión'}
+          </button>
+        </div>
       </nav>
     </aside>
   );

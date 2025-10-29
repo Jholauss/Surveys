@@ -15,9 +15,9 @@ export default function StudentCodeForm({ onSubmit, onCodeChange, currentCode = 
     onCodeChange(newCode);
   };
 
-  // Validar si el código tiene el formato correcto
+  // Validar si el código tiene el formato correcto (8 caracteres)
   const isValidCode = (code) => {
-    return code.length === 10 && /^[A-Z0-9]+$/.test(code);
+    return code.length === 8 && /^[A-Z0-9]+$/.test(code);
   };
 
   return (
@@ -55,37 +55,37 @@ export default function StudentCodeForm({ onSubmit, onCodeChange, currentCode = 
               <label className="block text-sm font-medium text-[#042254] mb-2">
                 Código de Alumno
               </label>
-              <CodeInputField 
-                value={studentCode} 
-                onChange={handleCodeChange} 
-                length={10}
+              <CodeInputField
+                value={studentCode}
+                onChange={handleCodeChange}
+                length={8}
               />
-              
+
               {/* Mensaje de estado del código */}
-              {studentCode.length > 0 && studentCode.length < 10 && (
+              {studentCode.length > 0 && studentCode.length < 8 && (
                 <p className="text-xs text-yellow-600 text-center mt-2">
-                  Complete los 10 caracteres • Solo letras mayúsculas y números
+                  Complete los 8 caracteres • Solo letras mayúsculas y números
                 </p>
               )}
-              
-              {studentCode.length === 10 && !isValidCode(studentCode) && (
+
+              {studentCode.length === 8 && !isValidCode(studentCode) && (
                 <p className="text-xs text-red-600 text-center mt-2">
                   Formato inválido • Use solo letras mayúsculas y números
                 </p>
               )}
-              
-              {studentCode.length === 10 && isValidCode(studentCode) && (
+
+              {studentCode.length === 8 && isValidCode(studentCode) && (
                 <p className="text-xs text-green-600 text-center mt-2">
                   ✓ Código válido • Listo para verificar
                 </p>
               )}
             </div>
 
-            <button 
+            <button
               type="submit"
-              disabled={studentCode.length !== 10 || !isValidCode(studentCode)}
+              disabled={studentCode.length !== 8 || !isValidCode(studentCode)}
               className={`w-full py-3 rounded-lg transition-all duration-300 font-medium shadow-lg text-lg ${
-                studentCode.length === 10 && isValidCode(studentCode)
+                studentCode.length === 8 && isValidCode(studentCode)
                   ? 'bg-[#042254] text-white hover:bg-[#031a42]'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}

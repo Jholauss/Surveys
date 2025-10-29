@@ -1,6 +1,7 @@
+// src/app/admin/surveys/create/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,437 +14,394 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, X, Search } from "lucide-react";
-import { diplomaturaTeachers } from "@/lib/data";
-
-// Tipos
-interface Teacher {
-  id: string;
-  name: string;
-  subject: string;
-  photo: string;
-  diplomatura: string;
-}
-
-interface Question {
-  id: string;
-  type: "rating" | "text" | "multiple_choice" | "checkbox";
-  question: string;
-  options: string[];
-  required: boolean;
-}
+import { Plus, Trash2, X } from "lucide-react";
 
 export default function CreateSurveyPage() {
   const router = useRouter();
 
-  // Estados principales
-  const [surveyName, setSurveyName] = useState<string>("");
-  const [surveyDescription, setSurveyDescription] = useState<string>("");
-  const [teacherCount, setTeacherCount] = useState<string>("");
-  const [selectedTeachers, setSelectedTeachers] = useState<Teacher[]>([]);
-  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [type, setType] = useState("teacher_evaluation");
+  const [status, setStatus] = useState("draft");
+  const [requiresCode, setRequiresCode] = useState(true);
 
-  // Estado preguntas
-  const [questions, setQuestions] = useState<Question[]>([
+  const [teachers, setTeachers] = useState<any[]>([]);
+  const [selectedTeachers, setSelectedTeachers] = useState<string[]>([]);
+  const [maxTeachers, setMaxTeachers] = useState<number>(0);
+
+  const [questions, setQuestions] = useState<any[]>([
     {
-      id: Date.now().toString(),
       type: "rating",
       question: "¿Cómo calificaría el dominio del tema por parte del docente?",
-      options: [],
       required: true,
+      minValue: 1,
+      maxValue: 5,
     },
   ]);
 
-  // Todos los docentes disponibles
-  const allTeachers: Teacher[] = Object.entries(diplomaturaTeachers).flatMap(
-    ([diplomaturaKey, teachers]) =>
-      teachers.map((t) => ({
-        ...t,
-        diplomatura: diplomaturaKey,
-      }))
-  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Seleccionar docente
-  const handleSelectTeacher = (teacher: Teacher): void => {
-    const maxTeachers = parseInt(teacherCount || "0");
-    if (maxTeachers > 0 && selectedTeachers.length < maxTeachers) {
-      if (!selectedTeachers.find((t) => t.id === teacher.id)) {
-        setSelectedTeachers((prev) => [...prev, teacher]);
-      }
+  useEffect(() => {
+    loadTeachers();
+  }, []);
+
+  const loadTeachers = async () => {
+    const res = await fetch("/api/admin/teachers");
+    const data = await res.json();
+    if (res.ok) {
+      setTeachers(data.teachers || []);
     }
   };
 
-  // Remover docente
-  const handleRemoveTeacher = (teacherId: string): void => {
-    setSelectedTeachers((prev) => prev.filter((t) => t.id !== teacherId));
-  };
-
-  // Preguntas
-  const handleAddQuestion = (): void => {
+  const handleAddQuestion = () => {
     setQuestions((prev) => [
       ...prev,
-      {
-        id: Date.now().toString(),
-        type: "text",
-        question: "Nueva pregunta",
-        options: [],
-        required: true,
-      },
+      { type: "text", question: "Nueva pregunta", required: true },
     ]);
   };
 
-  const handleRemoveQuestion = (questionId: string): void => {
-    setQuestions((prev) => prev.filter((q) => q.id !== questionId));
+  const handleRemoveQuestion = (index: number) => {
+    setQuestions((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleQuestionChange = (
-    questionId: string,
-    field: keyof Question,
-    value: any
-  ): void => {
+  const handleQuestionChange = (index: number, field: string, value: any) => {
     setQuestions((prev) =>
-      prev.map((q) => (q.id === questionId ? { ...q, [field]: value } : q))
+      prev.map((q, i) => (i === index ? { ...q, [field]: value } : q))
     );
   };
 
-  const handleAddOption = (questionId: string): void => {
-    setQuestions((prev) =>
-      prev.map((q) => {
-        if (
-          q.id === questionId &&
-          (q.type === "multiple_choice" || q.type === "checkbox")
-        ) {
-          return {
-            ...q,
-            options: [...q.options, `Opción ${q.options.length + 1}`],
-          };
-        }
-        return q;
-      })
-    );
-  };
-
-  const handleRemoveOption = (questionId: string, optionIndex: number): void => {
-    setQuestions((prev) =>
-      prev.map((q) => {
-        if (q.id === questionId) {
-          const newOptions = [...q.options];
-          newOptions.splice(optionIndex, 1);
-          return { ...q, options: newOptions };
-        }
-        return q;
-      })
-    );
-  };
-
-  // Guardar encuesta
-  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const maxTeachers = parseInt(teacherCount || "0");
-    if (!surveyName || maxTeachers <= 0 || selectedTeachers.length === 0) {
-      alert("Por favor complete todos los campos requeridos");
+    if (!title || questions.length === 0) {
+      alert("Complete todos los campos requeridos");
       return;
     }
 
-    if (selectedTeachers.length !== maxTeachers) {
-      alert(`Debe seleccionar exactamente ${maxTeachers} docente(s)`);
-      return;
+    setIsSubmitting(true);
+
+    try {
+      const res = await fetch("/api/admin/surveys", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          description,
+          type,
+          status,
+          requiresCode,
+          questions,
+          teacherIds: selectedTeachers,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        alert(`Encuesta creada! Link: ${data.publicLink}`);
+        router.push("/admin/surveys");
+      } else {
+        alert("Error: " + data.error);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Error al crear encuesta");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const surveyData = {
-      id: `SURVEY-${Date.now()}`,
-      name: surveyName,
-      description: surveyDescription,
-      teacherCount: maxTeachers,
-      teachers: selectedTeachers,
-      questions,
-      createdAt: new Date().toISOString(),
-      active: true,
-    };
-
-    console.log("Encuesta creada:", surveyData);
-    router.push("/admin/surveys");
   };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Crear Nueva Encuesta</h1>
-        <p className="text-gray-600">Configure los detalles de su encuesta</p>
-      </div>
+      <h1 className="text-3xl font-bold">Crear Nueva Encuesta</h1>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Información básica */}
+        {/* Info Básica */}
         <Card>
           <CardHeader>
-            <CardTitle>Información de la Encuesta</CardTitle>
+            <CardTitle>Información Básica</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="title">Título *</Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="description">Descripción</Label>
+              <textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full px-3 py-2 border rounded-md"
+                rows={3}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="surveyName">Nombre de la Encuesta *</Label>
-                <Input
-                  id="surveyName"
-                  value={surveyName}
-                  onChange={(e) => setSurveyName(e.target.value)}
-                  placeholder="Ej: Evaluación Docente 2024"
-                  required
-                />
+                <Label>Tipo</Label>
+                <Select value={type} onValueChange={setType}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="teacher_evaluation">
+                      Evaluación de Docentes
+                    </SelectItem>
+                    <SelectItem value="institutional">Institucional</SelectItem>
+                    <SelectItem value="custom">Personalizada</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+
               <div>
-                <Label htmlFor="teacherCount">Cantidad de Docentes *</Label>
-                <Input
-                  id="teacherCount"
-                  type="number"
-                  min="1"
-                  max="10"
-                  value={teacherCount}
-                  onChange={(e) => setTeacherCount(e.target.value)}
-                  placeholder="3"
-                  required
-                />
+                <Label>Estado</Label>
+                <Select value={status} onValueChange={setStatus}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="draft">Borrador</SelectItem>
+                    <SelectItem value="active">Activa</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-            <div>
-              <Label htmlFor="surveyDescription">Descripción</Label>
-              <textarea
-                id="surveyDescription"
-                value={surveyDescription}
-                onChange={(e) => setSurveyDescription(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md min-h-[100px]"
-                placeholder="Describa el propósito de esta encuesta..."
+
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="requiresCode"
+                checked={requiresCode}
+                onChange={(e) => setRequiresCode(e.target.checked)}
               />
+              <Label htmlFor="requiresCode">Requiere código de estudiante</Label>
             </div>
           </CardContent>
         </Card>
 
         {/* Docentes */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Docentes para la Encuesta</CardTitle>
-            <p className="text-sm text-gray-600">
-              Seleccione exactamente {teacherCount || "0"} docente(s) para esta encuesta
-            </p>
-          </CardHeader>
-          <CardContent>
-            {selectedTeachers.length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-sm font-medium text-gray-700 mb-3">
-                  Docentes Seleccionados ({selectedTeachers.length}/{teacherCount || "0"})
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {selectedTeachers.map((teacher) => (
-                    <div
-                      key={teacher.id}
-                      className="flex items-center gap-2 bg-blue-100 px-3 py-2 rounded-full"
-                    >
-                      <img
-                        src={
-                          teacher.photo?.startsWith("/teachers/")
-                            ? teacher.photo
-                            : teacher.photo || "/teachers/default.jpg"
-                        }
-                        alt={teacher.name}
-                        className="w-8 h-8 rounded-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src =
-                            "https://placehold.co/40x40/042254/white?text=DOC";
-                        }}
-                      />
-                      <span className="text-sm font-medium">{teacher.name}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveTeacher(teacher.id)}
-                        className="text-blue-600 hover:text-blue-800"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Barra de búsqueda */}
-            <div className="mb-6">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+        {type === "teacher_evaluation" && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Docentes a Evaluar</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="maxTeachers">¿Cuántos docentes desea evaluar? *</Label>
                 <Input
-                  placeholder="Buscar docente por nombre o código PUCP..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  id="maxTeachers"
+                  type="number"
+                  min="0"
+                  max={teachers.length}
+                  value={maxTeachers}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value) || 0;
+                    setMaxTeachers(value);
+                    if (selectedTeachers.length > value) {
+                      setSelectedTeachers(selectedTeachers.slice(0, value));
+                    }
+                  }}
+                  placeholder="Ej: 3"
+                  className="max-w-xs"
                 />
+                <p className="text-sm text-gray-500 mt-1">
+                  {selectedTeachers.length} de {maxTeachers} docentes seleccionados
+                </p>
               </div>
-            </div>
 
-            {/* Docentes disponibles */}
-            <div>
-              <h3 className="text-sm font-medium text-gray-700 mb-3">Docentes Disponibles</h3>
-              {parseInt(teacherCount || "0") <= 0 ? (
-                <p className="text-sm text-gray-500">Ingrese la cantidad de docentes primero</p>
-              ) : (
+              {maxTeachers > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {allTeachers
-                    .filter((t) => !selectedTeachers.find((s) => s.id === t.id))
-                    .filter(
-                      (t) =>
-                        t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        t.id.toLowerCase().includes(searchTerm.toLowerCase())
-                    )
-                    .map((teacher) => (
+                  {teachers.map((teacher) => {
+                    const isSelected = selectedTeachers.includes(teacher.id);
+                    const canSelect = isSelected || selectedTeachers.length < maxTeachers;
+
+                    return (
                       <div
                         key={teacher.id}
-                        className={`border-2 rounded-lg p-4 cursor-pointer transition-colors ${
-                          selectedTeachers.length >= parseInt(teacherCount || "0")
-                            ? "border-gray-300 opacity-50 cursor-not-allowed"
-                            : "border-gray-200 hover:border-blue-500 hover:bg-blue-50"
-                        }`}
-                        onClick={() => handleSelectTeacher(teacher)}
+                        onClick={() => {
+                          if (!canSelect && !isSelected) return;
+
+                          if (isSelected) {
+                            setSelectedTeachers((prev) =>
+                              prev.filter((id) => id !== teacher.id)
+                            );
+                          } else {
+                            setSelectedTeachers((prev) => [...prev, teacher.id]);
+                          }
+                        }}
+                        className={`
+                          relative border-2 rounded-lg p-4 cursor-pointer transition-all
+                          ${isSelected
+                            ? 'border-blue-500 bg-blue-50'
+                            : canSelect
+                              ? 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                              : 'border-gray-200 bg-gray-100 opacity-50 cursor-not-allowed'}
+                        `}
                       >
-                        <div className="flex items-center gap-4">
-                          <img
-                            src={`/teachers/${teacher.photo}`}
-                            alt={teacher.name}
-                            className="w-12 h-12 rounded-full object-cover"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src =
-                                "https://placehold.co/48x48/042254/white?text=DOC";
-                            }}
-                          />
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">
+                            ✓
+                          </div>
+                        )}
+
+                        <div className="flex flex-col items-center text-center space-y-2">
+                          <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
+                            {teacher.photo ? (
+                              <img
+                                src={teacher.photo}
+                                alt={teacher.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <span className="text-3xl text-gray-400">👤</span>
+                            )}
+                          </div>
+
                           <div>
-                            <h4 className="font-medium text-gray-900">{teacher.name}</h4>
-                            <p className="text-sm text-gray-600">{teacher.subject}</p>
+                            <h4 className="font-semibold text-sm">{teacher.name}</h4>
+                            {teacher.subject && (
+                              <p className="text-xs text-gray-600">{teacher.subject}</p>
+                            )}
+                            {teacher.diplomatura && (
+                              <p className="text-xs text-gray-500">{teacher.diplomatura}</p>
+                            )}
                           </div>
                         </div>
+
+                        {!canSelect && !isSelected && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-70 rounded-lg">
+                            <span className="text-xs text-gray-600 font-medium">
+                              Límite alcanzado
+                            </span>
+                          </div>
+                        )}
                       </div>
-                    ))}
+                    );
+                  })}
                 </div>
               )}
-            </div>
-          </CardContent>
-        </Card>
+
+              {maxTeachers > 0 && teachers.length === 0 && (
+                <p className="text-sm text-gray-500">
+                  No hay docentes disponibles. Agregue docentes primero.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Preguntas */}
         <Card>
           <CardHeader>
-            <CardTitle>Preguntas de la Encuesta</CardTitle>
-            <p className="text-sm text-gray-600">
-              Configure las preguntas que aparecerán en la encuesta
-            </p>
+            <CardTitle>Preguntas</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            {questions.map((question, index) => (
-              <div key={question.id} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex justify-between items-start mb-3">
-                  <h4 className="font-medium text-gray-900">Pregunta {index + 1}</h4>
+          <CardContent className="space-y-4">
+            {questions.map((q, i) => (
+              <div key={i} className="border p-4 rounded space-y-3">
+                <div className="flex justify-between">
+                  <h4 className="font-medium">Pregunta {i + 1}</h4>
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleRemoveQuestion(question.id)}
-                    className="text-red-600 hover:text-red-800 h-8 w-8 p-0"
+                    onClick={() => handleRemoveQuestion(i)}
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
 
-                <div className="space-y-4">
-                  <div>
-                    <Label>Tipo de Pregunta</Label>
-                    <Select
-                      value={question.type}
-                      onValueChange={(value) =>
-                        handleQuestionChange(question.id, "type", value)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccione tipo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="rating">Calificación (1-5)</SelectItem>
-                        <SelectItem value="text">Respuesta de texto</SelectItem>
-                        <SelectItem value="multiple_choice">Opción única</SelectItem>
-                        <SelectItem value="checkbox">Opción múltiple</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div>
+                  <Label>Tipo</Label>
+                  <Select
+                    value={q.type}
+                    onValueChange={(v) => handleQuestionChange(i, "type", v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="text">Texto</SelectItem>
+                      <SelectItem value="textarea">Texto Largo</SelectItem>
+                      <SelectItem value="rating">Calificación</SelectItem>
+                      <SelectItem value="multiple_choice">Opción Única</SelectItem>
+                      <SelectItem value="checkbox">Opción Múltiple</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
+                <div>
+                  <Label>Pregunta *</Label>
+                  <Input
+                    value={q.question}
+                    onChange={(e) =>
+                      handleQuestionChange(i, "question", e.target.value)
+                    }
+                    required
+                  />
+                </div>
+
+                {(q.type === "multiple_choice" || q.type === "checkbox") && (
                   <div>
-                    <Label>Texto de la Pregunta *</Label>
+                    <Label>Opciones (separadas por coma)</Label>
                     <Input
-                      value={question.question}
+                      placeholder="Opción 1, Opción 2, Opción 3"
                       onChange={(e) =>
-                        handleQuestionChange(question.id, "question", e.target.value)
+                        handleQuestionChange(
+                          i,
+                          "options",
+                          e.target.value.split(",").map((o) => o.trim())
+                        )
                       }
-                      placeholder="Escriba su pregunta..."
-                      required
                     />
                   </div>
+                )}
 
-                  {(question.type === "multiple_choice" || question.type === "checkbox") && (
+                {q.type === "rating" && (
+                  <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <Label>Opciones</Label>
-                      <div className="space-y-2 mt-2">
-                        {question.options.map((option, index) => (
-                          <div key={index} className="flex gap-2">
-                            <Input
-                              value={option}
-                              onChange={(e) => {
-                                const newOptions = [...question.options];
-                                newOptions[index] = e.target.value;
-                                handleQuestionChange(question.id, "options", newOptions);
-                              }}
-                              placeholder={`Opción ${index + 1}`}
-                            />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveOption(question.id, index)}
-                              className="text-red-600 hover:text-red-800 h-8 w-8 p-0"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        ))}
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleAddOption(question.id)}
-                          className="text-[#042254] border-[#042254] mt-2"
-                        >
-                          <Plus className="w-4 h-4 mr-1" />
-                          Añadir Opción
-                        </Button>
-                      </div>
+                      <Label>Mín</Label>
+                      <Input
+                        type="number"
+                        value={q.minValue || 1}
+                        onChange={(e) =>
+                          handleQuestionChange(i, "minValue", parseInt(e.target.value))
+                        }
+                      />
                     </div>
-                  )}
-
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id={`required-${question.id}`}
-                      checked={question.required}
-                      onChange={(e) =>
-                        handleQuestionChange(question.id, "required", e.target.checked)
-                      }
-                      className="mr-2 h-4 w-4 rounded border-gray-300 text-[#042254] focus:ring-[#042254]"
-                    />
-                    <Label htmlFor={`required-${question.id}`}>Pregunta obligatoria</Label>
+                    <div>
+                      <Label>Máx</Label>
+                      <Input
+                        type="number"
+                        value={q.maxValue || 5}
+                        onChange={(e) =>
+                          handleQuestionChange(i, "maxValue", parseInt(e.target.value))
+                        }
+                      />
+                    </div>
                   </div>
+                )}
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={q.required}
+                    onChange={(e) =>
+                      handleQuestionChange(i, "required", e.target.checked)
+                    }
+                  />
+                  <Label>Obligatoria</Label>
                 </div>
               </div>
             ))}
 
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleAddQuestion}
-              className="text-[#042254] border-[#042254]"
-            >
+            <Button type="button" variant="outline" onClick={handleAddQuestion}>
               <Plus className="w-4 h-4 mr-2" />
               Añadir Pregunta
             </Button>
@@ -459,8 +417,8 @@ export default function CreateSurveyPage() {
           >
             Cancelar
           </Button>
-          <Button type="submit" className="bg-[#042254] hover:bg-[#031a42]">
-            Crear Encuesta
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Creando..." : "Crear Encuesta"}
           </Button>
         </div>
       </form>

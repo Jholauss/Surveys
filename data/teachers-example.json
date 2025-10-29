@@ -1,0 +1,23 @@
+[
+  {
+    "name": "Dr. Juan Pérez",
+    "email": "juan.perez@university.edu",
+    "subject": "Matemáticas Avanzadas",
+    "diplomatura": "Ingeniería de Sistemas",
+    "status": "active"
+  },
+  {
+    "name": "Dra. María González",
+    "email": "maria.gonzalez@university.edu",
+    "subject": "Base de Datos",
+    "diplomatura": "Ingeniería de Sistemas",
+    "status": "active"
+  },
+  {
+    "name": "Ing. Carlos Rodríguez",
+    "email": "carlos.rodriguez@university.edu",
+    "subject": "Programación Web",
+    "diplomatura": "Ingeniería de Sistemas",
+    "status": "active"
+  }
+]

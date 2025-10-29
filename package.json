@@ -5,17 +5,30 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "import:teachers": "tsx scripts/import-data.ts --teachers",
+    "import:surveys": "tsx scripts/import-data.ts --surveys",
+    "import:all": "tsx scripts/import-data.ts --teachers data/teachers.json --surveys data/surveys.json"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
+    "@prisma/client": "^6.18.0",
+    "@prisma/extension-accelerate": "^2.0.2",
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dotenv": "^17.2.3",
     "firebase": "^12.4.0",
     "lucide-react": "^0.544.0",
+    "nanoid": "^5.1.6",
     "next": "^15.5.4",
     "react": "18.2.0",
     "react-dom": "18.2.0",
@@ -29,7 +42,9 @@
     "@types/react": "19.2.0",
     "autoprefixer": "^10.4.21",
     "postcss": "^8.5.6",
+    "prisma": "^6.18.0",
     "tailwindcss": "^3.4.18",
+    "tsx": "^4.20.6",
     "typescript": "5.9.3"
   }
 }

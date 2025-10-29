@@ -1,0 +1,180 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// Administradores del sistema
+model Admin {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("admins")
+}
+
+// Estudiantes que responden encuestas
+model Student {
+  id             String     @id @default(cuid())
+  code           String     @unique // Código único de 8 caracteres
+  name           String
+  email          String?
+  diplomatura    String     // Diplomatura a la que pertenece
+  status         String     @default("active") // active, inactive
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  responses      Response[]
+  sessions       Session[]
+
+  @@index([code])
+  @@map("students")
+}
+
+// Docentes a evaluar
+model Teacher {
+  id             String           @id @default(cuid())
+  name           String
+  email          String?
+  subject        String?          // Materia que dicta
+  diplomatura    String?          // Diplomatura a la que pertenece
+  photo          String?          // URL o nombre de archivo de foto
+  status         String           @default("active") // active, inactive
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  surveyTeachers SurveyTeacher[]
+
+  @@map("teachers")
+}
+
+// Encuestas creadas por el admin
+model Survey {
+  id             String          @id @default(cuid())
+  title          String
+  description    String?         @db.Text
+  type           String          // teacher_evaluation, hiring, institutional, custom
+  uniqueLink     String          @unique // Link único público para acceder a la encuesta
+  status         String          @default("draft") // draft, active, closed
+  startsAt       DateTime?       // Fecha de inicio (opcional)
+  endsAt         DateTime?       // Fecha de fin (opcional)
+  requiresCode   Boolean         @default(true) // Si requiere código de estudiante
+  allowAnonymous Boolean         @default(false) // Si permite respuestas anónimas
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  questions      Question[]
+  responses      Response[]
+  surveyTeachers SurveyTeacher[] // Docentes asociados a esta encuesta
+  sessions       Session[]
+
+  @@index([uniqueLink])
+  @@index([status])
+  @@map("surveys")
+}
+
+// Relación entre encuestas y docentes (para evaluar múltiples docentes en una encuesta)
+model SurveyTeacher {
+  id        String   @id @default(cuid())
+  surveyId  String
+  teacherId String
+  order     Int      @default(0) // Orden de aparición
+
+  survey    Survey   @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  teacher   Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@unique([surveyId, teacherId])
+  @@index([surveyId])
+  @@index([teacherId])
+  @@map("survey_teachers")
+}
+
+// Preguntas de cada encuesta
+model Question {
+  id          String   @id @default(cuid())
+  surveyId    String
+  type        String   // text, rating, multiple_choice, checkbox, textarea
+  question    String   @db.Text
+  description String?  @db.Text // Descripción o ayuda adicional
+  options     Json?    // Para preguntas de opción múltiple: ["Opción 1", "Opción 2"]
+  required    Boolean  @default(true)
+  order       Int      @default(0) // Orden de la pregunta en la encuesta
+  minValue    Int?     // Para ratings: valor mínimo
+  maxValue    Int?     // Para ratings: valor máximo
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  survey      Survey   @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  answers     Answer[]
+
+  @@index([surveyId])
+  @@map("questions")
+}
+
+// Sesiones de evaluación (cuando un estudiante ingresa con su código)
+model Session {
+  id               String     @id @default(cuid())
+  surveyId         String
+  studentId        String?    // Puede ser null si es anónimo
+  sessionToken     String     @unique // Token único de sesión
+  completed        Boolean    @default(false)
+  evaluatedCount   Int        @default(0) // Cantidad de docentes evaluados
+  createdAt        DateTime   @default(now())
+  expiresAt        DateTime   // Expiración de la sesión
+
+  survey           Survey     @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  student          Student?   @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  responses        Response[]
+
+  @@index([sessionToken])
+  @@index([surveyId])
+  @@map("sessions")
+}
+
+// Respuestas completas a encuestas
+model Response {
+  id             String   @id @default(cuid())
+  surveyId       String
+  sessionId      String
+  studentId      String?  // Puede ser null si es anónimo
+  teacherId      String?  // Si la encuesta es de evaluación de docente
+  completed      Boolean  @default(false)
+  submittedAt    DateTime @default(now())
+  metadata       Json?    // Información adicional: IP, user agent, etc.
+
+  survey         Survey   @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  session        Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  student        Student? @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  answers        Answer[]
+
+  @@index([surveyId])
+  @@index([sessionId])
+  @@index([studentId])
+  @@map("responses")
+}
+
+// Respuestas individuales a preguntas específicas
+model Answer {
+  id         String   @id @default(cuid())
+  responseId String
+  questionId String
+  value      Json     // Valor de la respuesta (puede ser texto, número, array, etc.)
+  createdAt  DateTime @default(now())
+
+  response   Response @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([responseId, questionId])
+  @@index([responseId])
+  @@index([questionId])
+  @@map("answers")
+}

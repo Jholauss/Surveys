@@ -71,7 +71,19 @@ export default function TeacherSelection({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {teachers.map((teacher, index) => {
+            {teachers.length === 0 ? (
+              <div className="col-span-full text-center py-12">
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                  <p className="text-lg font-medium text-yellow-800 mb-2">
+                    ⚠️ No hay docentes asignados a esta encuesta
+                  </p>
+                  <p className="text-sm text-yellow-700">
+                    Por favor contacte al administrador. Esta encuesta no tiene docentes asociados para evaluar.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              teachers.map((teacher, index) => {
               const isEvaluated = evaluatedTeachers.includes(teacher.id);
               
               return (
@@ -122,7 +134,7 @@ export default function TeacherSelection({
                   )}
                 </div>
               );
-            })}
+            }))}
           </div>
         </div>
       </div>

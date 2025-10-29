@@ -3,8 +3,8 @@ import './globals.css';
 import type { Metadata } from 'next';
 
 export const metadata = {
-  title: 'Evaluación de Docentes - PUCP',
-  description: 'Sistema de evaluación docente de la Pontificia Universidad Católica del Perú',
+  title: 'Sistema de Encuestas Dinámicas',
+  description: 'Plataforma para crear y gestionar encuestas personalizadas con preguntas dinámicas',
 };
 
 export default function RootLayout({
